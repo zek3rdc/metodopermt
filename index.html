@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Método PERT/CPM - Análisis de Proyecto</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #34495e;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0 10px 0;
+        }
+        
+        .table-container {
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #bdc3c7;
+        }
+        
+        td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #bdc3c7;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #ecf0f1;
+        }
+        
+        tr:hover {
+            background-color: #d5dbdb;
+        }
+        
+        .input-cell {
+            background-color: #e8f6f3;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .calculated-cell {
+            background-color: #fef9e7;
+            color: #8e44ad;
+            font-weight: bold;
+        }
+        
+        .critical-path {
+            background-color: #fadbd8;
+            color: #c0392b;
+            font-weight: bold;
+        }
+        
+        .results-section {
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #28a745;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+        
+        .network-diagram {
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .node {
+            display: inline-block;
+            width: 80px;
+            height: 40px;
+            background: #3498db;
+            color: white;
+            border-radius: 20px;
+            line-height: 40px;
+            margin: 10px;
+            font-weight: bold;
+        }
+        
+        .arrow {
+            color: #2c3e50;
+            font-size: 20px;
+            margin: 0 10px;
+        }
+        
+        .formula-section {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        
+        button {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ MÉTODO PERT/CPM - ANÁLISIS DE PROYECTO</h1>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e8f6f3;"></div>
+                <span>Datos de Entrada</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fef9e7;"></div>
+                <span>Valores Calculados</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fadbd8;"></div>
+                <span>Ruta Crítica</span>
+            </div>
+        </div>
+
+        <h2>📊 TABLA 1: DEFINICIÓN DE ACTIVIDADES</h2>
+        <div class="table-container">
+            <table id="activitiesTable">
+                <thead>
+                    <tr>
+                        <th>Actividad</th>
+                        <th>Descripción</th>
+                        <th>Predecesora</th>
+                        <th>Duración Optimista (a)</th>
+                        <th>Duración Más Probable (m)</th>
+                        <th>Duración Pesimista (b)</th>
+                        <th>Duración Esperada (te)</th>
+                        <th>Varianza (σ²)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="input-cell">A</td>
+                        <td class="input-cell">Planificación inicial</td>
+                        <td class="input-cell">-</td>
+                        <td class="input-cell">2</td>
+                        <td class="input-cell">3</td>
+                        <td class="input-cell">5</td>
+                        <td class="calculated-cell">3.17</td>
+                        <td class="calculated-cell">0.25</td>
+                    </tr>
+                    <tr>
+                        <td class="input-cell">B</td>
+                        <td class="input-cell">Diseño del sistema</td>
+                        <td class="input-cell">A</td>
+                        <td class="input-cell">4</td>
+                        <td class="input-cell">6</td>
+                        <td class="input-cell">8</td>
+                        <td class="calculated-cell">6.00</td>
+                        <td class="calculated-cell">0.44</td>
+                    </tr>
+                    <tr>
+                        <td class="input-cell">C</td>
+                        <td class="input-cell">Compra de materiales</td>
+                        <td class="input-cell">A</td>
+                        <td class="input-cell">1</td>
+                        <td class="input-cell">2</td>
+                        <td class="input-cell">4</td>
+                        <td class="calculated-cell">2.17</td>
+                        <td class="calculated-cell">0.25</td>
+                    </tr>
+                    <tr>
+                        <td class="input-cell">D</td>
+                        <td class="input-cell">Desarrollo</td>
+                        <td class="input-cell">B,C</td>
+                        <td class="input-cell">6</td>
+                        <td class="input-cell">8</td>
+                        <td class="input-cell">12</td>
+                        <td class="calculated-cell">8.33</td>
+                        <td class="calculated-cell">1.00</td>
+                    </tr>
+                    <tr>
+                        <td class="input-cell">E</td>
+                        <td class="input-cell">Pruebas</td>
+                        <td class="input-cell">D</td>
+                        <td class="input-cell">2</td>
+                        <td class="input-cell">3</td>
+                        <td class="input-cell">6</td>
+                        <td class="calculated-cell">3.33</td>
+                        <td class="calculated-cell">0.44</td>
+                    </tr>
+                    <tr>
+                        <td class="input-cell">F</td>
+                        <td class="input-cell">Implementación</td>
+                        <td class="input-cell">E</td>
+                        <td class="input-cell">1</td>
+                        <td class="input-cell">2</td>
+                        <td class="input-cell">3</td>
+                        <td class="calculated-cell">2.00</td>
+                        <td class="calculated-cell">0.11</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="formula-section">
+            <h3>📐 Fórmulas Utilizadas:</h3>
+            <div class="formula"><strong>Duración Esperada (te):</strong> te = (a + 4m + b) / 6</div>
+            <div class="formula"><strong>Varianza:</strong> σ² = ((b - a) / 6)²</div>
+            <div class="formula"><strong>Desviación Estándar:</strong> σ = √σ²</div>
+        </div>
+
+        <h2>🕐 TABLA 2: CÁLCULOS DE TIEMPOS</h2>
+        <div class="table-container">
+            <table id="timesTable">
+                <thead>
+                    <tr>
+                        <th>Actividad</th>
+                        <th>Duración (te)</th>
+                        <th>Inicio Temprano (ES)</th>
+                        <th>Fin Temprano (EF)</th>
+                        <th>Inicio Tardío (LS)</th>
+                        <th>Fin Tardío (LF)</th>
+                        <th>Holgura Total (TF)</th>
+                        <th>Holgura Libre (FF)</th>
+                        <th>¿Crítica?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="critical-path">
+                        <td>A</td>
+                        <td>3.17</td>
+                        <td>0</td>
+                        <td>3.17</td>
+                        <td>0</td>
+                        <td>3.17</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>SÍ</td>
+                    </tr>
+                    <tr class="critical-path">
+                        <td>B</td>
+                        <td>6.00</td>
+                        <td>3.17</td>
+                        <td>9.17</td>
+                        <td>3.17</td>
+                        <td>9.17</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>SÍ</td>
+                    </tr>
+                    <tr>
+                        <td>C</td>
+                        <td>2.17</td>
+                        <td>3.17</td>
+                        <td>5.34</td>
+                        <td>7.00</td>
+                        <td>9.17</td>
+                        <td>3.83</td>
+                        <td>3.83</td>
+                        <td>NO</td>
+                    </tr>
+                    <tr class="critical-path">
+                        <td>D</td>
+                        <td>8.33</td>
+                        <td>9.17</td>
+                        <td>17.50</td>
+                        <td>9.17</td>
+                        <td>17.50</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>SÍ</td>
+                    </tr>
+                    <tr class="critical-path">
+                        <td>E</td>
+                        <td>3.33</td>
+                        <td>17.50</td>
+                        <td>20.83</td>
+                        <td>17.50</td>
+                        <td>20.83</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>SÍ</td>
+                    </tr>
+                    <tr class="critical-path">
+                        <td>F</td>
+                        <td>2.00</td>
+                        <td>20.83</td>
+                        <td>22.83</td>
+                        <td>20.83</td>
+                        <td>22.83</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>SÍ</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="formula-section">
+            <h3>📐 Fórmulas para Cálculo de Tiempos:</h3>
+            <div class="formula"><strong>Inicio Temprano (ES):</strong> ES = máximo EF de predecesoras</div>
+            <div class="formula"><strong>Fin Temprano (EF):</strong> EF = ES + te</div>
+            <div class="formula"><strong>Fin Tardío (LF):</strong> LF = mínimo LS de sucesoras</div>
+            <div class="formula"><strong>Inicio Tardío (LS):</strong> LS = LF - te</div>
+            <div class="formula"><strong>Holgura Total (TF):</strong> TF = LS - ES = LF - EF</div>
+            <div class="formula"><strong>Holgura Libre (FF):</strong> FF = mínimo ES de sucesoras - EF</div>
+        </div>
+
+        <h2>🛣️ TABLA 3: ANÁLISIS DE RUTAS</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ruta</th>
+                        <th>Actividades</th>
+                        <th>Duración Total</th>
+                        <th>¿Es Crítica?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="critical-path">
+                        <td>Ruta 1</td>
+                        <td>A → B → D → E → F</td>
+                        <td>22.83 días</td>
+                        <td>SÍ - RUTA CRÍTICA</td>
+                    </tr>
+                    <tr>
+                        <td>Ruta 2</td>
+                        <td>A → C → D → E → F</td>
+                        <td>19.00 días</td>
+                        <td>NO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="network-diagram">
+            <h3>🕸️ DIAGRAMA DE RED SIMPLIFICADO</h3>
+            <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">
+                <div class="node">A<br>3.17</div>
+                <span class="arrow">→</span>
+                <div class="node">B<br>6.00</div>
+                <span class="arrow">→</span>
+                <div class="node">D<br>8.33</div>
+                <span class="arrow">→</span>
+                <div class="node">E<br>3.33</div>
+                <span class="arrow">→</span>
+                <div class="node">F<br>2.00</div>
+            </div>
+            <div style="margin-top: 20px;">
+                <div class="node" style="background: #95a5a6;">C<br>2.17</div>
+                <span style="font-size: 12px; color: #7f8c8d;">↗ (conecta a D)</span>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <h2>📈 RESULTADOS DEL ANÁLISIS</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #e74c3c;">
+                    <h4 style="margin: 0 0 10px 0; color: #e74c3c;">⏱️ DURACIÓN DEL PROYECTO</h4>
+                    <p style="font-size: 24px; font-weight: bold; margin: 0;">22.83 días</p>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db;">
+                    <h4 style="margin: 0 0 10px 0; color: #3498db;">🛣️ RUTA CRÍTICA</h4>
+                    <p style="font-weight: bold; margin: 0;">A → B → D → E → F</p>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #f39c12;">
+                    <h4 style="margin: 0 0 10px 0; color: #f39c12;">📊 VARIANZA TOTAL</h4>
+                    <p style="font-size: 18px; font-weight: bold; margin: 0;">2.24</p>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60;">
+                    <h4 style="margin: 0 0 10px 0; color: #27ae60;">📈 DESV. ESTÁNDAR</h4>
+                    <p style="font-size: 18px; font-weight: bold; margin: 0;">1.50 días</p>
+                </div>
+            </div>
+
+            <h3 style="color: #2c3e50; margin-top: 30px;">🎯 PROBABILIDADES DE FINALIZACIÓN</h3>
+            <div style="background: white; padding: 15px; border-radius: 8px;">
+                <p><strong>Probabilidad de terminar en 21 días:</strong> <span style="color: #e74c3c;">16%</span></p>
+                <p><strong>Probabilidad de terminar en 23 días:</strong> <span style="color: #f39c12;">58%</span></p>
+                <p><strong>Probabilidad de terminar en 25 días:</strong> <span style="color: #27ae60;">93%</span></p>
+            </div>
+        </div>
+
+        <h2>🔧 HERRAMIENTAS INTERACTIVAS</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+            <button onclick="recalculate()">🔄 Recalcular Tiempos</button>
+            <button onclick="exportData()">📊 Exportar Datos</button>
+            <button onclick="showCriticalPath()">🛣️ Resaltar Ruta Crítica</button>
+            <button onclick="calculateProbability()">📈 Calcular Probabilidades</button>
+        </div>
+    </div>
+
+    <script>
+        // Funciones para la interactividad
+        function recalculate() {
+            alert('Función de recálculo - En una implementación real, esto recalcularía todos los valores basándose en las entradas modificadas.');
+        }
+
+        function exportData() {
+            alert('Función de exportación - En una implementación real, esto exportaría los datos a Excel o CSV.');
+        }
+
+        function showCriticalPath() {
+            // Resaltar más la ruta crítica
+            const criticalRows = document.querySelectorAll('.critical-path');
+            criticalRows.forEach(row => {
+                row.style.boxShadow = '0 0 10px #e74c3c';
+                row.style.transform = 'scale(1.02)';
+                row.style.transition = 'all 0.3s ease';
+            });
+            
+            setTimeout(() => {
+                criticalRows.forEach(row => {
+                    row.style.boxShadow = 'none';
+                    row.style.transform = 'scale(1)';
+                });
+            }, 2000);
+        }
+
+        function calculateProbability() {
+            const days = prompt('Ingrese el número de días para calcular la probabilidad de finalización:');
+            if (days && !isNaN(days)) {
+                // Cálculo simplificado usando distribución normal
+                const mean = 22.83;
+                const stdDev = 1.50;
+                const z = (parseFloat(days) - mean) / stdDev;
+                
+                // Aproximación de la función de distribución normal
+                const probability = Math.round(normalCDF(z) * 100);
+                
+                alert(`La probabilidad de completar el proyecto en ${days} días es aproximadamente ${probability}%`);
+            }
+        }
+
+        function normalCDF(x) {
+            // Aproximación de la función de distribución acumulativa normal estándar
+            return 0.5 * (1 + erf(x / Math.sqrt(2)));
+        }
+
+        function erf(x) {
+            // Aproximación de la función de error
+            const a1 =  0.254829592;
+            const a2 = -0.284496736;
+            const a3 =  1.421413741;
+            const a4 = -1.453152027;
+            const a5 =  1.061405429;
+            const p  =  0.3275911;
+            
+            const sign = x >= 0 ? 1 : -1;
+            x = Math.abs(x);
+            
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            
+            return sign * y;
+        }
+
+        // Animación inicial
+        window.addEventListener('load', function() {
+            const tables = document.querySelectorAll('table');
+            tables.forEach((table, index) => {
+                table.style.opacity = '0';
+                table.style.transform = 'translateY(20px)';
+                table.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    table.style.opacity = '1';
+                    table.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
